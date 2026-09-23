@@ -1,0 +1,17 @@
+name = "atheaton-chat"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+account_id = "e4b576fd0cd48b8477f2b9d8ffacf6c9"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "RATE"
+id = "32aea1402d7e474e893c146f67bab88e"
+
+[[kv_namespaces]]
+binding = "LEADS"
+id = "9a81e13e0f2b4838a238494e8b723c96"
+
+[vars]
+LEAD_TO = "info@atheatonfilms.com"
+LEAD_KEY = "rvffk9erhnrq983fj96b8r9v"
