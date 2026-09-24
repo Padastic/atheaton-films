@@ -806,6 +806,7 @@ export default {
         if (q === T[lang].ready) {
           reply = q;
           done = true;
+          closed = true;   /* the form is complete; end the conversation */
         } else {
           reply = (reply ? reply + " " : "") + q;
         }

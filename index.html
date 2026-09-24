@@ -452,7 +452,7 @@ section.driftHost{overflow:hidden}
       /* and if the conversation has been closed, the field closes with it */
       if (d.closed) {
         input.disabled = true; sendB.disabled = true;
-        input.placeholder = "This conversation has ended";
+        input.placeholder = d.done ? "We'll be in touch soon" : "This conversation has ended";
       }
       /* the code goes out once, when the studio asks for it */
       if (d.need_code && state.email && !codeSent) {
