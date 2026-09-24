@@ -467,11 +467,9 @@ section.driftHost{overflow:hidden}
         lastEstimate = d.estimate;
         bubble(estimateBlock(d.estimate), 'ai', true);
       }
-      /* the request goes to the studio when the figure is given, and again whenever
-         the couple chooses a way forward, so the calendar entry carries it too */
-      var leadSig = JSON.stringify({ e: !!d.estimate, b: !!state.booking_requested, f: !!state.followup, c: state.channel || '' });
-      if ((d.estimate || state.booking_requested || state.followup || state.channel) && leadSig !== lastLead) {
-        lastLead = leadSig;
+      /* the request goes to the studio once, when the details are complete */
+      if (d.done && !lastLead) {
+        lastLead = true;
         fetch(API + '/lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

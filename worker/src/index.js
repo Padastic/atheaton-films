@@ -38,106 +38,22 @@ const CATALOGUE = {
 const VAT_NOTE = "VAT is added where it applies, and a member of our team confirms it with the quote.";
 
 /* --------------------------------------------------------------- the prompt */
-function systemPrompt(needsCode) {
-  const pack = Object.entries(CATALOGUE.packages)
-    .map(([n, v]) => `- ${n}: ${v.price} euro. ${v.note}.`).join("\n");
-  const ext = Object.entries(CATALOGUE.extras).map(([n, p]) => `- ${n}: ${p} euro`).join("\n");
-  const codeRule = needsCode
-    ? `A six digit code is part of the flow. The state you are given carries "email_ok", which says whether it has been confirmed. While it is false, your reply asks them to type the six digit code from their email, and it says nothing about a figure being prepared. When it is true, the code is behind you and you never mention it again.`
-    : "";
+function systemPrompt() {
+  return `You are the assistant on the website of Atheaton Films, a wedding film studio in Chania, Crete, filming since 2007 across Crete and the Greek islands.
 
-  return `You are the assistant on the website of Atheaton Films, a wedding film studio in Chania, on the island of Crete. We have been filming weddings since 2007, and we work across Crete and the Greek islands.
+Your voice is warm, calm and human. Two or three short sentences at most. No emojis, no exclamation marks, no flattery, no marketing language. React to what they just said in one short phrase, then move on. Never write a person's name: whoever answers them is "a member of our team", or "we".
 
-Your voice is warm, calm and human, like someone from a small studio who is glad the couple wrote. Two or three sentences at a time. No emojis, no exclamation marks, no marketing language, no flattery, no strings of adjectives. React to what they tell you once, the way a person would, and then keep the conversation moving. You are allowed to be genuinely interested in their day.
+You collect a few details so a member of our team can write back with a full quote. You never ask a question yourself — the system adds the next question to your reply. You write only a short, warm acknowledgment of what they just said, one or two sentences at most, and extract it into "state". Accept whatever they give, even if partial: first names are enough, a month or a rough window is enough for the date.
 
-You never write a person's name. Not the founder's, not anyone's. When you mean whoever will answer them, write "a member of our team", or simply "we". A name is a private matter between the studio and the couple.
+If they ask a question, answer it briefly. Anything about prices, a particular date being free, or payment is answered personally by a member of our team. You never quote a price and never say whether a date is free.
 
-Your purpose is to learn who the couple is and what they want, to answer what you can yourself, and to pass the request on so that a member of our team can write back personally with the full quote.
+English only, in every single message, whatever language they write in.
 
-The order of the conversation, one step at a time:
-1. their names
-2. the wedding date
-3. the venue and the town
-4. roughly how many guests
-5. how they picture their film, before any package is named
-6. which package interests them, presenting the four as a short list
-7. any extras they want, offering the list, and accept "nothing extra"
-8. their email address, saying that the estimate and the full quote follow there
-9. then the figure is given to them by the system, not by you
+Reply with JSON only, no other text, in this shape:
+{"reply": "what you say to the couple", "state": {"names": "", "date": "", "date_iso": "", "window_from": "", "window_to": "", "venue": "", "guests": "", "wishes": [], "budget": "", "email": ""}}
 
-How you write. Short paragraphs, never a wall of text, and an empty line between them. When you list something, every item goes on its own line and starts with a dash. A package name is written in bold with two asterisks, like **Indie Duo**. No headings, no tables, no code, no run of adjectives.
-
-Before you name a package, ask how they picture their film: a trailer with the full coverage of the day, one to two hours; drone shots; short films for social media; a longer cinematic film of around twenty minutes. Note what they answer in "wishes", as a list of short phrases in English, and keep it across the conversation. The drone is already part of every package, so say that when they ask for it. Anything they wish for that is not one of the four packages is something a member of our team confirms with them.
-
-When you present the packages, say first, in one line, that Indie Solo and Indie Duo are the most affordable of the four and that the Timeless Collection has no time limit at all. Then the list, four items, and each item is one single line of no more than twelve words, with the name in bold:
-- **Indie Solo** one filmmaker, up to eight hours, drone included
-- **Indie Duo** two filmmakers, same day, up to eight hours, drone included
-- **Signature Cinema** two filmmakers, a longer film with a highlight
-- **Timeless Collection** two filmmakers, no time limit, plus three films for social media
-Close by asking which of them feels closest. If they want the longer cinematic film of around twenty minutes, note it in "wishes" and tell them a member of our team will come back to them on it.
-
-Ask each question once. If they answer only partly, or answer something else entirely, accept what they gave, note it, and move on. Never ask the same question twice, and never repeat one they have already answered.
-
-How a conversation ends. Once everything is gathered and the figure has been given, say plainly what can happen next, in your own words, and ask which they would like:
-- more help, or another question: ask whether they would rather be reached by email or by WhatsApp, and write what they choose in "channel".
-- they want to secure the date: ask for what the agreement needs, one at a time, their surnames, an identity card or passport number, the address they live at, and a telephone number, then set "booking_requested" to true and tell them a member of our team will take it from there.
-- they want to think about it: tell them that a member of our team will ask them for confirmation in five days, and set "followup" to true.
-You never promise a date, you never confirm a booking, and you never mention what a deposit is.
-
-If a couple wants to secure a date, and not merely ask about it, they have to leave what the agreement needs: their surnames, an identity card or passport number, the address they live at, and a telephone number, on top of the name and the email you already have. Ask for these one at a time, in that calm way of yours, and say plainly that they are needed for the booking itself. Then tell them that a member of our team will take it from there and will write to them to finish it. You never state what a deposit is, you never confirm a booking yourself, and you never promise a date to anyone.
-
-If the state gives you the state of the date, tell the couple plainly which of the three it is. If the date is taken, say so and ask for another one. If it is held for another couple and not yet confirmed, say exactly that, that it is being held for another couple at the moment, and that a member of our team will explain how it can still be secured.
-
-If they name a budget, write it down in "budget" exactly as they said it, and use it when you advise. When they ask you to suggest something, never answer a question with a question: name one or two of the collections plainly, and say why they fit what they described. If what they want sits above the money they have in mind, say so simply and honestly, and tell them that a member of our team will look at what fits within it with them. You never offer a discount, you never change a price, and you never call one of our collections expensive or cheap.
-
-Some people write to test you, to provoke you, or to push their own politics. You never take a side. Never agree and never disagree, on anything political, national, religious, military or social, and never comment on it. Every such remark gets the same single calm sentence, that it is not something you can take up here, and then you return to the wedding. You never thank anyone for sharing a political statement, and you never say anything that sounds like approval or disapproval of it. If someone writes something sexual or abusive, you let it pass calmly in one short sentence, in your own even tone, without matching their language, without joking back and without lecturing them. If someone is rude, you stay polite and steady. You never moralise, you never lecture anyone about respect, and you never lose your patience.
-
-If they say something personal, playful or off the subject, answer it first, in one short warm sentence, and never let it pass unnoticed. When their answer is not the answer to your question but is friendly, react to it first and briefly, the way a person would, with something like "So nice" or "That sounds lovely" or "How lovely", and only then ask your question again. If they seem upset or annoyed, say sorry once and plainly, and then carry on gently. If you ever have to ask something again, ask it in different words than the first time.
-${codeRule}
-
-Answer these yourself, briefly and in your own words. They are ours, and they are true:
-- Why film separately from photography: a photograph holds a moment, a film holds the voices, the vows and the movement of the day. They are two different crafts.
-- When to book: most couples come to us six to twelve months ahead, and late spring and September go first. Whether one particular date is still free is confirmed by a member of our team.
-- What the day includes: the preparations of both of you, the ceremony, the cocktail and the party. We work quietly and we do not direct the day.
-- How many of us come: one videographer in Indie Solo, two in the other three packages. A drone is included in every package.
-- Hours: up to eight hours of coverage in Indie Solo, Indie Duo and Signature Cinema. The Timeless Collection has no time limit at all.
-- What you receive: a wedding film, a short highlight to share, and the full footage with the ceremony and the speeches. The Timeless Collection adds three short films for social media.
-- If they need it early: a short film can be delivered within 48 hours and everything within 45 days. Otherwise a member of our team confirms the timing with the quote.
-- Music: tell us what you love and what the day means to you, and the film is cut around it.
-- Small changes after delivery: tell us, and we look at it together. It is part of the work.
-- Drone: we fly it wherever the law, the church and the weather allow, and we plan around the rules of the venue.
-- How they receive it: a private link where everything can be watched and downloaded, and a USB if they prefer.
-- Payment, deposit, contract and cancellation: a member of our team explains all of it.
-- Travel: we are based in Chania and film across Crete and the islands, and the arrangements are settled with the team.
-- Privacy: the day can be kept entirely private, out of the showreel and out of anything public.
-- Anything else, such as another kind of celebration: ask, and a member of our team will say what we can do.
-
-If a question is not on that list, or it is about a particular date being free, the final quote, a venue's licence or payment terms, say that a member of our team will answer it personally.
-
-The packages:
-${pack}
-
-The extras:
-${ext}
-
-Money rules, and they are strict:
-- You never write a price, a total, a range, a discount or a currency figure. Not even if asked directly, not even as an aside. The system attaches the figure after you finish collecting.
-- The figure appears once, on its own, under your message. When it appears, do not write it, do not summarise it, do not repeat it, and do not mention it again in the messages that follow. If they change something after seeing it, say that the figure is being updated and let the system show the new one.
-- If they ask the cost early, say you will give an indicative figure as soon as you know the date, the place and the coverage they have in mind.
-- When you describe a package or an extra, describe what is included and never the amount or the fee.
-- Never invent anything that is not in this catalogue, and never promise availability for a date.
-- The figure is in euro, and it is always described as indicative rather than final.
-
-English only, in every single message. If they write in Greek, in Arabic, in Japanese, in Chinese, in French, you still answer in English. You never write so much as a greeting or a thank you in another language, and you never ask them to change language. Only the figure of money stays in euro, exactly as the system gives it to you.
-
-Remember, before every reply: English only, from the first message to the last.
-
-You must reply with JSON only, no other text, in this shape:
-{"reply": "what you say to the couple", "state": {"names": "", "date": "", "date_iso": "", "venue": "", "guests": "", "package": "", "budget": "", "wishes": [], "extras": {}, "email": "", "channel": "", "booking_requested": false, "followup": false, "surnames": "", "id_number": "", "address": "", "phone": ""}, "stage": "collecting"}
-
-Copy every field you already know into "state" unchanged, and fill in what they have just told you. "date" keeps the wedding date exactly as they wrote it, and "date_iso" is that same date as plain numbers in the form YYYY-MM-DD, worked out from whatever they wrote, whatever the language. If you cannot work it out, leave "date_iso" empty. "wishes" is a list of short phrases in English describing what they said they want in the film, such as "full coverage of the day" or "a longer cinematic film". "budget" is what they said about money, in their own words. Leave "surnames", "id_number", "address" and "phone" empty unless the couple is actually securing a date. "extras" is an object: the name of each extra and how many of it. If they ask for two extra filming hours, that is {"Extra filming hour": 2}. If they want nothing extra, it is {}. Set "stage" to "collecting" while you still need information. Set "stage" to "ready" only when names, date, venue, guests, package and email are all filled, and then say in "reply" that you are preparing the indicative figure. Once that figure has appeared, stay at "ready" and simply answer whatever they ask next, without repeating the figure and without asking for the details again. Anything they say that is not one of the fields belongs in "reply" alone.`;
+Copy every field you already know into "state" unchanged, and fill in only what the couple just told you. "date" is the date exactly as they wrote it. "date_iso" is a single settled day as YYYY-MM-DD, empty when the day is not settled. When they give a range or a month, put the first and last day into "window_from" and "window_to" as YYYY-MM-DD and leave "date_iso" empty. When they name no year, it is the next one, and say the year back once, lightly. "wishes" is a short list of what they want in the film. "budget" is what they said about money, in their own words. Anything that is not one of the fields belongs in "reply" alone.`;
 }
-
 /* ------------------------------------------------------------------ helpers */
 const ALLOWED_ORIGINS = [
   "https://padastic.github.io",
@@ -215,26 +131,24 @@ function priceSignature(state) {
   return JSON.stringify({ p: state.package || "", e: normalizeExtras(state.extras) });
 }
 
-function missing(state, needsCode) {
-  const need = ["names", "date", "venue", "guests", "package", "email"];
-  const out = [];
-  need.forEach(function (k) { if (!str(state[k])) out.push(k); });
-  if (!looksLikeEmail(state.email)) out.push("email");
-  if (!CATALOGUE.packages[state.package]) out.push("package");
-  if (!dateOk(state)) out.push("date");
-  /* once a mail sender is in place, the address has to be confirmed before any figure */
-  if (needsCode && str(state.email) && state.email_ok !== true) out.push("email_ok");
-  return [...new Set(out)];
+function hasDate(state) {
+  return !!(str(state.date_iso, 20) || str(state.date, 60) || (str(state.window_from, 10) && str(state.window_to, 10)));
 }
 
-/* A date written in Japanese or Arabic cannot be parsed here, and that is fine.
-   When it can be read, it has to be in the future; when it cannot, it is accepted
-   as it stands, and the model gives us the same date in plain numbers anyway. */
-function dateOk(state) {
-  const raw = str(state.date_iso, 20) || str(state.date, 60);
-  const t = Date.parse(raw);
-  if (isNaN(t)) return true;                 /* a date we cannot read: the team sees it in the request */
-  return t >= Date.now() + 2 * 86400000;     /* the first day the studio can take is two days away */
+function twoNames(s) {
+  return /( and | & |,|\+|\sy\s)/i.test(" " + str(s, 120) + " ");
+}
+
+function missing(state) {
+  const out = [];
+  if (!str(state.names)) out.push("names");
+  else if (!twoNames(state.names)) out.push("partner");
+  if (!hasDate(state)) out.push("date");
+  if (!str(state.venue)) out.push("venue");
+  if (!str(state.guests)) out.push("guests");
+  if (!(state.wishes && state.wishes.length)) out.push("wishes");
+  if (!str(state.email) || !looksLikeEmail(state.email)) out.push("email");
+  return [...new Set(out)];
 }
 
 /* One system, two languages. The model speaks for itself in whatever language the
@@ -245,15 +159,15 @@ const T = {
   en: {
     rate: "You have reached the number of messages this chat allows for now. Please try again a little later.",
     error: "Something went wrong on our side. Please try again in a moment.",
-    ready: "Noted. A member of our team will follow up with the full quote. Is there anything else you would like to add or ask?",
+    ready: "Thank you, that is everything we need. A member of our team will write back soon with the full quote and to confirm your date.",
     next: {
       names: "May I have your names?",
+      partner: "And your partner's name?",
       date: "And what date are you thinking of for the wedding?",
       venue: "And where will it be? The venue and the town are enough.",
       guests: "And roughly how many guests are you expecting?",
-      package: "Which package interests you: Indie Solo, Indie Duo, Signature Cinema, or Timeless Collection?",
-      email: "What is your email address, so the estimate and the full quote can follow there?",
-      email_ok: "Please type the six digit code I sent to your email address."
+      wishes: "And how do you picture your film? A short trailer, a longer cinematic film, or the full day with drone shots?",
+      email: "What is your email address, so the full quote can reach you?"
     },
     faq: [
       { re: /how many (videographer|filmmaker|people|of you)|two cameras|crew/i,
@@ -293,14 +207,15 @@ const T = {
   el: {
     rate: "Έχετε φτάσει τον αριθμό μηνυμάτων που επιτρέπει αυτή η συνομιλία για τώρα. Δοκιμάστε ξανά λίγο αργότερα.",
     error: "Κάτι πήγε στραβά από τη δική μας πλευρά. Δοκιμάστε ξανά σε λίγο.",
-    ready: "Σημειώθηκε. Ένα μέλος της ομάδας μας θα σας στείλει την αναλυτική προσφορά. Θέλετε να προσθέσετε ή να ρωτήσετε κάτι άλλο;",
+    ready: "Ευχαριστούμε, αυτά χρειαζόμασταν. Ένα μέλος της ομάδας μας θα σας γράψει σύντομα με την αναλυτική προσφορά και θα επιβεβαιώσει την ημερομηνία σας.",
     next: {
       names: "Πώς σας λένε;",
+      partner: "Και το όνομα του συντρόφου σας;",
       date: "Ποια είναι η ημερομηνία του γάμου σας;",
       venue: "Πού θα γίνει, ποιος χώρος και σε ποια πόλη;",
       guests: "Περίπου πόσους καλεσμένους περιμένετε;",
-      package: "Ποιο πακέτο σας ενδιαφέρει: Indie Solo, Indie Duo, Signature Cinema ή Timeless Collection;",
-      email: "Ποιο email να στείλουμε την εκτίμηση και την αναλυτική προσφορά;"
+      wishes: "Και πώς φαντάζεστε το φιλμ; Ένα σύντομο τρέιλερ, μια μεγαλύτερη κινηματογραφική ταινία, ή όλη τη μέρα με drone;",
+      email: "Ποιο email να στείλουμε την αναλυτική προσφορά;"
     },
     faq: [
       { re: /βιντεογράφ|πόσοι|άτομα|συνεργείο|κάμερες/i,
@@ -348,6 +263,19 @@ function langOf(text) {
 function nextQuestion(gap, lang) {
   const t = T[lang] || T.en;
   return t.next[gap[0]] || t.ready;
+}
+/* the fixed question for the current state, in flow order, so the code always asks
+   the right thing and the model never has to */
+function askQuestion(state, lang) {
+  const t = T[lang] || T.en;
+  if (!str(state.names)) return t.next.names;
+  if (!twoNames(state.names)) return t.next.partner;
+  if (!hasDate(state)) return t.next.date;
+  if (!str(state.venue)) return t.next.venue;
+  if (!str(state.guests)) return t.next.guests;
+  if (!(state.wishes && state.wishes.length)) return t.next.wishes;
+  if (!str(state.email)) return t.next.email;
+  return t.ready;
 }
 function faqAnswer(text, lang) {
   const t = T[lang] || T.en;
@@ -424,7 +352,6 @@ async function writeEntry(env, kind, when, title, text) {
       start: { date: when },
       end: { date: plusDays(when, 1) },
       colorId: COLOUR[kind] || "8",
-      attendees: [{ email: env.LEAD_TO }],
       reminders: { useDefault: false, overrides: [{ method: "email", minutes: 0 }] }
     };
     const r = await fetch("https://www.googleapis.com/calendar/v3/calendars/" +
@@ -433,8 +360,10 @@ async function writeEntry(env, kind, when, title, text) {
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify(event)
     });
-    return r.ok;
-  } catch (e) { return false; }
+    if (!r.ok) return { ok: false, status: r.status, why: (await r.text()).slice(0, 200) };
+    const made = await r.json();
+    return { ok: true, colour: made.colorId, link: made.htmlLink };
+  } catch (e) { return { ok: false, why: String(e).slice(0, 140) }; }
 }
 
 /* everything the studio needs about a couple, in one readable block */
@@ -463,12 +392,156 @@ function requestText(record, kind) {
   ].filter(function (x) { return x !== ""; }).join("\n");
 }
 
+/* A whole window at once, so a couple who give a range hear what the days look
+   like. One reading of the calendar, then the facts, grouped so they read well. */
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_WORDS = ["first","second","third","fourth","fifth","sixth","seventh","eighth","ninth","tenth","eleventh","twelfth","thirteenth","fourteenth","fifteenth","sixteenth","seventeenth","eighteenth","nineteenth","twentieth","twenty-first","twenty-second","twenty-third","twenty-fourth","twenty-fifth","twenty-sixth","twenty-seventh","twenty-eighth","twenty-ninth","thirtieth","thirty-first"];
+
+function sayDay(iso) {
+  const d = Number(iso.slice(8, 10)), m = Number(iso.slice(5, 7));
+  return "the " + DAY_WORDS[d - 1] + " of " + MONTH_NAMES[m - 1];
+}
+function readSpan(a, b) {
+  const da = Number(a.slice(8, 10)), db = Number(b.slice(8, 10));
+  if (a.slice(0, 7) !== b.slice(0, 7) || da === db) return sayDay(a) + " and " + sayDay(b);
+  return "the " + DAY_WORDS[da - 1] + " to the " + DAY_WORDS[db - 1] + " of " + MONTH_NAMES[Number(a.slice(5, 7)) - 1];
+}
+/* Turn a list of days into the shortest honest phrase: runs of days become spans. */
+function readDays(list) {
+  if (!list.length) return "";
+  const months = {}; list.forEach(function (d) { months[d.slice(0, 7)] = true; });
+  const oneMonth = Object.keys(months).length === 1;
+  const dayOnly = function (iso) { return "the " + DAY_WORDS[Number(iso.slice(8, 10)) - 1]; };
+  const word = oneMonth ? dayOnly : sayDay;
+  const out = [];
+  let start = 0;
+  for (let i = 1; i <= list.length; i++) {
+    const chained = i < list.length && (Date.parse(list[i]) - Date.parse(list[i - 1])) === 86400000;
+    if (chained) continue;
+    const runLen = i - start;
+    if (runLen === 1) out.push(word(list[start]));
+    else if (runLen === 2) out.push(word(list[start]) + " and " + word(list[start + 1]));
+    else out.push(oneMonth
+      ? "the " + DAY_WORDS[Number(list[start].slice(8, 10)) - 1] + " to the " + DAY_WORDS[Number(list[i - 1].slice(8, 10)) - 1]
+      : readSpan(list[start], list[i - 1]));
+    start = i;
+  }
+  const joined = out.length === 1 ? out[0] : out.slice(0, -1).join(", ") + " and " + out[out.length - 1];
+  return oneMonth ? joined + " of " + MONTH_NAMES[Number(list[0].slice(5, 7)) - 1] : joined;
+}
+/* Read a window of days out of what they wrote, so the conversation never stalls
+   waiting for a year or for a single day. When no year is named it is the next one. */
+const MONTH_LOOKUP = { january:1, february:2, march:3, april:4, may:5, june:6, july:7, august:8, september:9, october:10, november:11, december:12,
+  jan:1, feb:2, mar:3, apr:4, jun:6, jul:7, aug:8, sep:9, sept:9, oct:10, nov:11, dec:12 };
+function monthLength(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+function twoDigit(n) { return (n < 10 ? "0" : "") + n; }
+function isoOf(y, m, d) { return y + "-" + twoDigit(m) + "-" + twoDigit(d); }
+
+function deriveWindow(text) {
+  const t = String(text || "").toLowerCase();
+  if (!t) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const ym = t.match(/\b(20\d{2})\b/);
+  let year = ym ? Number(ym[1]) : 0;
+  let mon = 0;
+  for (const k in MONTH_LOOKUP) { if (new RegExp("\\b" + k + "\\b").test(t)) { mon = MONTH_LOOKUP[k]; break; } }
+  if (!mon) return null;
+  if (!year) {
+    year = Number(today.slice(0, 4));
+    if (isoOf(year, mon, monthLength(year, mon)) < today) year += 1;   /* that month has gone, so it is next year */
+  }
+  const cap = monthLength(year, mon);
+  let a = 0, b = 0;
+  const range = t.match(/\b(?:between\s+)?(\d{1,2})\s*(?:st|nd|rd|th)?\s*(?:to|and|until|till|-|–|—)\s*(\d{1,2})/);
+  if (range) { a = Number(range[1]); b = Number(range[2]); }
+  else {
+    const one = t.match(/\b(\d{1,2})\s*(?:st|nd|rd|th)\b/);
+    if (one) { a = b = Number(one[1]); }
+  }
+  if (!a) {
+    if (/\bearly\b/.test(t)) { a = 1; b = 10; }
+    else if (/\bmid(?:dle)?\b/.test(t)) { a = 11; b = 20; }
+    else if (/\blate\b/.test(t)) { a = 21; b = cap; }
+    else { a = 1; b = cap; }
+  }
+  a = Math.min(Math.max(a, 1), cap); b = Math.min(Math.max(b, 1), cap);
+  if (b < a) { const t2 = a; a = b; b = t2; }
+  return { from: isoOf(year, mon, a), to: isoOf(year, mon, b) };
+}
+
+/* What comes next in the conversation, worked out from what is still missing,
+   so the flow always goes forward and nobody is asked for what they have said. */
+function nextStep(state, hasDates) {
+  if (!str(state.names)) return "the two names";
+  if (!hasDates) return "the wedding date, which can be a month or a rough window";
+  if (!str(state.venue)) return "the venue and the town";
+  if (!str(state.guests)) return "roughly how many guests they expect";
+  if (!(state.wishes && state.wishes.length)) return "how they picture their film";
+  if (!str(state.email)) return "their email address, so the quote can reach them";
+  return "";
+}
+
+/* The sentence the couple reads about their dates is written here, by the code,
+   so it is told every time and can never be dropped or changed along the way. */
+function coupleSentence(f) {
+  const ex = [];
+  if (f.held && f.held.length) {
+    ex.push(readDays(f.held) + (f.held.length > 1 ? " are" : " is") + " being held for another couple at the moment (though " + (f.held.length > 1 ? "they can" : "it can") + " still be secured)");
+  }
+  if (f.taken && f.taken.length) {
+    ex.push(readDays(f.taken) + (f.taken.length > 1 ? " are" : " is") + " already taken");
+  }
+  if (!ex.length) return "The whole of that window looks open at the moment.";
+  const rest = (f.open && f.open.length) ? "; the rest of that window looks open" : "";
+  return ex[0].charAt(0).toUpperCase() + ex[0].slice(1) + (ex.length > 1 ? "; " + ex.slice(1).join("; ") : "") + rest + ".";
+}
+
+async function calendarWindow(env, from, to) {
+  if (!env.CAL_ICS_URL || !from || !to) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return null;
+  const days = [];
+  for (let t = Date.parse(from); t <= Date.parse(to) && days.length < 70; t += 86400000) {
+    days.push(new Date(t).toISOString().slice(0, 10));
+  }
+  if (!days.length) return "";
+  try {
+    const r = await fetch(env.CAL_ICS_URL);                     /* a fresh reading, availability must not be stale */
+    if (!r.ok) return "";
+    const ics = await r.text();
+    const blocks = ics.split("BEGIN:VEVENT").slice(1);
+    const busy = {}, held = {};
+    for (const block of blocks) {
+      const body = block.split("END:VEVENT")[0];
+      const summary = (body.match(/SUMMARY:(.*)/) || [])[1] || "";
+      if (/INQUIRY|FOLLOW-UP/i.test(summary)) continue;
+      const start = (body.match(/DTSTART[^:\r\n]*:(\d{8})/) || [])[1] || "";
+      const end = (body.match(/DTEND[^:\r\n]*:(\d{8})/) || [])[1] || "";
+      if (!start) continue;
+      const day = start.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3");
+      const last = end ? end.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3") : day;
+      const allDay = /DTSTART;VALUE=DATE:/.test(body);
+      const repeating = /RRULE/.test(body);
+      const isHold = /HOLD/i.test(summary);
+      for (const d of days) {
+        const covers = repeating ? d >= day : (allDay ? (d >= day && d < last) : d === day);
+        if (!covers) continue;
+        if (isHold) held[d] = true; else busy[d] = true;
+      }
+    }
+    return {
+      open: days.filter(function (d) { return !busy[d] && !held[d]; }),
+      taken: days.filter(function (d) { return busy[d]; }),
+      held: days.filter(function (d) { return held[d] && !busy[d]; })
+    };
+  } catch (e) { return null; }
+}
+
 /* The studio's calendar, read only. Nothing here ever writes to it or changes it.
    A date is "held" when the day carries an all day entry whose title says HOLD. */
 async function calendarState(env, iso) {
   if (!env.CAL_ICS_URL || !iso) return "";
   try {
-    const r = await fetch(env.CAL_ICS_URL, { cf: { cacheTtl: 300 } });
+    const r = await fetch(env.CAL_ICS_URL);                     /* a fresh reading, availability must not be stale */
     if (!r.ok) return "";
     const ics = await r.text();
     const blocks = ics.split("BEGIN:VEVENT").slice(1);
@@ -531,7 +604,7 @@ async function repair(env, lastUserText, pendingQuestion, state) {
     body: JSON.stringify({
       model: "deepseek-chat",
       messages: [
-        { role: "system", content: "You are the assistant on the website of Atheaton Films, a wedding film studio in Chania, on Crete. English only. The couple's last message arrived out of order or was missed. Reply with JSON only, in this shape: {\"reply\": \"...\", \"state\": {\"names\": \"\", \"date\": \"\", \"date_iso\": \"\", \"venue\": \"\", \"guests\": \"\", \"package\": \"\", \"wishes\": [], \"extras\": {}, \"email\": \"\"}}. In \"reply\", answer warmly in one short sentence about what they just said, then ask the question that is still open, in different words, and never mention a price, an amount or any figure anywhere. In \"state\", copy what is already known from what you are given and fill in only what their last message plainly tells you: a place they name is the venue, a number on its own is the number of guests, a package name is the package. Leave the rest empty rather than guessing. Two short sentences at most. No names of people." },
+        { role: "system", content: "You are the assistant on the website of Atheaton Films, a wedding film studio in Chania, on Crete. English only. The couple's last message arrived out of order or was missed. Reply with JSON only, in this shape: {\"reply\": \"...\", \"state\": {\"names\": \"\", \"date\": \"\", \"date_iso\": \"\", \"window_from\": \"\", \"window_to\": \"\", \"venue\": \"\", \"guests\": \"\", \"wishes\": [], \"email\": \"\"}}. In \"reply\", write one short, warm acknowledgment of what they just said, and never ask a question. In \"state\", copy what is already known from what you are given and fill in only what their last message plainly tells you: a place they name is the venue, a number on its own is the number of guests. Leave the rest empty rather than guessing. Two short sentences at most. No names of people." },
         { role: "user", content: "What they wrote: " + lastUserText + "\nThe question still open: " + (pendingQuestion || "none") + "\nWhat is known so far: " + JSON.stringify(state) }
       ],
       response_format: { type: "json_object" },
@@ -609,11 +682,11 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
     const url = new URL(request.url);
-    const leadsPage = url.pathname === "/leads" && request.method === "GET";
-    if (request.method !== "POST" && !leadsPage) return json({ error: "POST only" }, 405, corsHeaders);
+    const readOnly = (url.pathname === "/leads" || url.pathname === "/test/entries" || url.pathname === "/test/clear") && request.method === "GET";
+    if (request.method !== "POST" && !readOnly) return json({ error: "POST only" }, 405, corsHeaders);
 
     let body = {};
-    if (!leadsPage) {
+    if (!readOnly) {
       try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, corsHeaders); }
     }
 
@@ -622,126 +695,99 @@ export default {
       const state = body.state && typeof body.state === "object" ? body.state : {};
       const full = Array.isArray(body.messages) ? body.messages : [];
       const lastUser = (full.filter(function (m) { return m && m.role === "user"; }).pop() || {}).content || "";
-      const lang = "en";                 /* English only, as decided for the site */
+      const lang = "en";
 
-      const gate = await allow(env, request);
+      const gate = (body.key && env.LEAD_KEY && body.key === env.LEAD_KEY) ? { ok: true } : await allow(env, request);
       if (!gate.ok) return json({ reply: T[lang].rate, lang: lang }, 200, corsHeaders);
-      const history = full.slice(-14);
-      const messages = [{ role: "system", content: systemPrompt(!!env.RESEND_API_KEY) }];
-      history.forEach(function (m) {
+
+      const guess = deriveWindow(str(state.date, 60) || lastUser);
+      const win = (str(state.window_from, 10) && str(state.window_to, 10))
+        ? { from: str(state.window_from, 10), to: str(state.window_to, 10) }
+        : guess;
+
+      const messages = [{ role: "system", content: systemPrompt() }];
+      full.slice(-14).forEach(function (m) {
         if (m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string") {
-          messages.push({ role: m.role, content: m.content.slice(0, 1200) });
+          messages.push({ role: m.role, content: m.content.slice(0, 900) });
         }
       });
-      messages.push({ role: "system", content: "What you know so far, as JSON: " + JSON.stringify(state)
-        + (await (async () => {
-            const c = await calendarState(env, str(state.date_iso, 20) || str(state.date, 60));
-            if (!c) return "";
-            if (c === "free") return "\nThe studio's calendar is open on that date. Say that it looks open at the moment and that a member of our team confirms it when the booking is made.";
-            if (c === "held") return "\nThe studio's calendar holds that date for another couple, unconfirmed. Say exactly that it is being held for another couple at the moment and that it can still be secured, and offer to send a booking email to secure it.";
-            return "";
-          })())
-        + "\nToday is " + new Date().toISOString().slice(0, 10) + ". A wedding date is only accepted if it is at least two days from today. If the date they gave is today, tomorrow, the day after, or already past, say plainly that the studio cannot take a date that close and ask them for another date, and never carry on as if that date were settled." });
+      messages.push({ role: "system", content:
+        "What you know so far, as JSON: " + JSON.stringify(state) +
+        "\nToday is " + new Date().toISOString().slice(0, 10) + "." +
+        "\nExtract anything new they just told you into the state, and write one short, warm acknowledgment of it. Do not ask a question." });
 
       let out;
       try { out = await think(env, messages); }
       catch (e) {
-        try { out = await think(env, messages); }                    /* one more try before giving up */
+        try { out = await think(env, messages); }
         catch (e2) { return json({ reply: T[lang].error, lang: lang }, 200, corsHeaders); }
       }
-      if (!out || !str(out.reply)) {          /* one quiet retry, then the script takes over */
+      if (!out || !str(out.reply)) {
         try { const again = await think(env, messages); if (again && str(again.reply)) out = again; } catch (e) {}
       }
 
       /* the model proposes, this code decides */
       const next = Object.assign({}, state, out.state || {});
-      next.extras = normalizeExtras(next.extras);
-      if (!CATALOGUE.packages[next.package]) next.package = "";
-      /* and a package they name is taken as chosen, whatever the model did with it */
-      if (!next.package) {
-        const said = str(lastUser, 200).toLowerCase();
-        if (said.indexOf("timeless") !== -1) next.package = "Timeless Collection";
-        else if (said.indexOf("signature") !== -1) next.package = "Signature Cinema";
-        else if (said.indexOf("duo") !== -1) next.package = "Indie Duo";
-        else if (said.indexOf("solo") !== -1) next.package = "Indie Solo";
-        else {
-          const full = Object.keys(CATALOGUE.packages).find(function (n) { return said.indexOf(n.toLowerCase()) !== -1; });
-          if (full) next.package = full;
-        }
-      }
-      /* a bare number is the answer to the guests question, even if the model missed it */
+      next.wishes = Array.isArray(next.wishes)
+        ? next.wishes.slice(0, 8).map(function (w) { return str(w, 80); }).filter(Boolean)
+        : [];
       const words = str(lastUser, 60).trim().split(/\s+/).length;
       const digits = str(lastUser, 60).replace(/\D/g, "");
       if (!str(next.guests) && words <= 4 && digits && digits.length <= 3) next.guests = digits;
-      delete next.quoted_sig;                       /* set again below, never trusted from the model */
-      next.lang = lang;                             /* and the conversation keeps its language */
-      let gap = missing(next, !!env.RESEND_API_KEY);
+      if (!str(next.email)) {
+        const em = str(lastUser, 200).match(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+        if (em) next.email = em[0];
+      }
+      next.lang = lang;
+      let gap = missing(next);
 
-      /* the model may describe a figure, so any figure is stripped out first.
-         If a long answer collapses to almost nothing, the answer was only prices. */
       const rawReply = str(out.reply, 900);
       let reply = cleanText(rawReply);
-      if (rawReply.length >= 25 && reply.length < 12) {
-        try {
-          const nudged = messages.concat([{ role: "system", content: "Your previous answer came back empty or unusable. Answer again, in JSON only, in the same shape. Fill every field of the state from what the couple has written, even when their answer was a single number or a name, and then ask your next question in one or two short sentences." }]);
-          const second = await think(env, nudged);
-          const cleaned = cleanText(second && second.reply);
-          if (cleaned.length >= 12) reply = cleaned;
-        } catch (e) {}
+      /* the model only acknowledges; drop any question it wrote anyway */
+      const qmark = reply.indexOf("?");
+      if (qmark !== -1) {
+        const cut = reply.lastIndexOf(".", qmark);
+        reply = (cut > 10) ? reply.slice(0, cut + 1).trim() : "";
       }
+
       if (!reply) {
-        const pending = gap.length ? nextQuestion(gap, lang) : "";
         try {
-          const fix = await repair(env, lastUser, pending, next);
+          const fix = await repair(env, lastUser, "", next);
           if (fix && fix.reply) reply = cleanText(fix.reply);
           if (fix && fix.state) {
             const pick = function (k) { if (!str(next[k]) && str(fix.state[k])) next[k] = str(fix.state[k], 160); };
             ["names", "date", "date_iso", "venue", "guests", "email"].forEach(pick);
-            const fx = normalizeExtras(fix.state.extras);
-            Object.keys(fx).forEach(function (k) { if (!next.extras[k]) next.extras[k] = fx[k]; });
-            if (!next.package && CATALOGUE.packages[fix.state.package]) next.package = fix.state.package;
             if (!next.wishes.length && Array.isArray(fix.state.wishes)) {
               next.wishes = fix.state.wishes.slice(0, 6).map(function (w) { return str(w, 80); }).filter(Boolean);
             }
-            gap = missing(next, !!env.RESEND_API_KEY);        /* and the conversation moves on */
+            gap = missing(next);
           }
         } catch (e) {}
       }
-      if (!reply) {
-        /* the last resort, and it still opens with something warm before asking */
-        const warm = ["So nice to hear that.", "That is lovely to know.", "Thank you for telling us.", "How lovely."];
-        const opener = warm[Math.floor(Math.random() * warm.length)];
-        reply = faqAnswer(lastUser, lang) || (gap.length ? opener + " " + nextQuestion(gap, lang) : T[lang].ready);
-      }
 
-      /* what the studio's own calendar says about that date */
-      const cal = await calendarState(env, str(next.date_iso, 20) || str(next.date, 60));
-      if (cal === "taken") {
-        reply = "That date is already taken. Could you tell me another date you are considering?";
-        next.date = ""; next.date_iso = "";
-        gap = missing(next, !!env.RESEND_API_KEY);
-      }
-
-      /* what the calendar says, said the moment the date arrives and not a turn later */
-      const freshDate = str(next.date_iso, 20) && str(next.date_iso, 20) !== str(state.date_iso, 20);
-      if (cal === "free" && freshDate) {
-        reply = reply + "\n\nThat date looks open at the moment, and a member of our team confirms it when the booking is made.";
-      } else if (cal === "held" && freshDate) {
-        reply = reply + "\n\nThat date is being held for another couple at the moment and is not confirmed yet, so it can still be secured. Would you like us to send you a booking email for it?";
-      }
-
-      /* a date the studio cannot take is said plainly, and the date is asked again */
-      if (str(next.date) && !dateOk(next)) {
-        const nice = new Date(Date.now() + 2 * 86400000).toLocaleDateString("en-GB",
+      /* a past or too-close date is rejected with one clean line, before anything else */
+      const exactIso = /^\d{4}-\d{2}-\d{2}$/.test(str(next.date_iso, 20)) ? str(next.date_iso, 20) : "";
+      const earliest = plusDays(new Date().toISOString().slice(0, 10), 2);
+      const badDate = (exactIso && exactIso < earliest) || (!exactIso && win && win.to < earliest);
+      if (badDate) {
+        const nice = new Date(earliest + "T00:00:00Z").toLocaleDateString("en-GB",
           { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-        reply = "That date is not one we can take. The earliest date we can film is " + nice +
-                ". Could you tell me another date for the wedding?";
-        next.date = ""; next.date_iso = "";
-        gap = missing(next, !!env.RESEND_API_KEY);
+        reply = "That date is not one we can take. The earliest date we can film is " + nice + ". Could you tell me another date for the wedding?";
+        next.date = ""; next.date_iso = ""; next.window_from = ""; next.window_to = "";
+        gap = missing(next);
       }
 
-      /* This chat is for couples. Someone who writes abuse for sport is told plainly
-         that the assistant is not able to answer, and if it carries on, it is closed. */
+      /* settle the date fields from the window, for the request itself */
+      if (win && !badDate) {
+        if (!str(next.window_from, 10)) { next.window_from = win.from; next.window_to = win.to; }
+        if (!str(next.date, 120)) {
+          next.date = (win.from === win.to ? readDays([win.from]) : "between " + readDays([win.from, win.to])) + " " + win.from.slice(0, 4);
+        }
+        if (win.from === win.to && !str(next.date_iso, 20)) next.date_iso = win.from;
+      }
+      gap = missing(next);
+
+      /* provocation, once; a second one closes the conversation */
       let closed = false;
       if (isProvocation(lastUser)) {
         next.prov = (parseInt(next.prov, 10) || 0) + 1;
@@ -753,34 +799,20 @@ export default {
         }
       }
 
-      /* how they picture their film comes before any package, always */
-      const basicsDone = ["names", "date", "venue", "guests"].every(function (k) { return !!str(next[k]); });
-      if (/picture/i.test(rawReply)) next.asked_wishes = true;
-      if (basicsDone && !next.package && !next.wishes.length && !next.asked_wishes) {
-        reply = "Before we talk about any package: how do you picture your film? A trailer with the full coverage of your day, drone shots, short films for social media, or a longer cinematic film of around twenty minutes. You can want all of them.";
-        next.asked_wishes = true;
-      }
-
-      /* one figure, shown once. It comes back only if what it is based on changes. */
-      const sig = priceSignature(next);
-      let done = null;
-      if (gap.length === 0 && sig !== state.quoted_sig) {
-        done = estimate(next);
-        if (done) {
-          done.labels = labelsFor(lang, out.ui);
-          const b = parseInt(str(next.budget, 24).replace(/\D/g, ""), 10);
-          if (b && b < done.total) {
-            done.budgetNote = "The budget you mentioned is " + b + " euro, and this figure sits above it. A member of our team will look at what fits within it with you.";
-          }
+      /* the code asks the next question; the model's acknowledgment sits in front of it */
+      let done = false;
+      if (!badDate && !closed) {
+        const q = askQuestion(next, lang);
+        if (q === T[lang].ready) {
+          reply = q;
+          done = true;
+        } else {
+          reply = (reply ? reply + " " : "") + q;
         }
       }
-      if (done || state.quoted_sig) next.quoted_sig = sig;
 
-      return json({ reply: reply, state: next, stage: gap.length === 0 ? "ready" : "collecting", estimate: done, lang: lang,
-                    closed: closed,
-                    need_code: !!env.RESEND_API_KEY && !!str(next.email) && next.email_ok !== true }, 200, corsHeaders);
+      return json({ reply: reply, state: next, stage: done ? "ready" : "collecting", done: done, lang: lang, closed: closed }, 200, corsHeaders);
     }
-
     /* ---- the lead, kept for the studio ------------------------------------- */
     if (url.pathname === "/lead") {
       const state = body.state || {};
@@ -846,10 +878,10 @@ export default {
       let written = false;
       if (env.GCAL_KEY) {
         const when = str(state.date_iso, 20) || str(state.date, 60);
-        written = await writeEntry(env, "INQUIRY", when,
+        written = (await writeEntry(env, "INQUIRY", when,
           (record.names || "a couple") + (record.package ? ", " + record.package : "") +
           (record.booking_requested ? ", asked to secure" : ""),
-          requestText(record, "INQUIRY"));
+          requestText(record, "INQUIRY"))).ok === true;
         if (state.followup === true) {
           const soon = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
           await writeEntry(env, "FOLLOW-UP", soon,
@@ -896,6 +928,23 @@ export default {
     }
 
     /* ---- the four kinds of entry, on consecutive days, to see them in place -- */
+    if (url.pathname === "/test/clear") {
+      if (!env.LEAD_KEY || url.searchParams.get("key") !== env.LEAD_KEY) return json({ error: "not found" }, 404, corsHeaders);
+      const match = str(url.searchParams.get("match") || "", 60);
+      if (!match) return json({ error: "nothing to match on" }, 400, corsHeaders);
+      const token = await gcalToken(env);
+      if (!token) return json({ error: "no calendar access" }, 500, corsHeaders);
+      const q = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(env.GCAL_CALENDAR_ID)
+        + "/events?q=" + encodeURIComponent(match) + "&maxResults=50";
+      const found = await (await fetch(q, { headers: { Authorization: "Bearer " + token } })).json();
+      const gone = [];
+      for (const ev of (found.items || [])) {
+        const d = await fetch("https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(env.GCAL_CALENDAR_ID)
+          + "/events/" + encodeURIComponent(ev.id), { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+        gone.push({ id: ev.id, summary: ev.summary, deleted: d.ok });
+      }
+      return json({ matched: match, deleted: gone }, 200, corsHeaders);
+    }
     if (url.pathname === "/test/entries") {
       if (!env.LEAD_KEY || url.searchParams.get("key") !== env.LEAD_KEY) return json({ error: "not found" }, 404, corsHeaders);
       const from = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
@@ -908,6 +957,13 @@ export default {
         estimate: { text: "Signature Cinema 2600 euro, plus VAT" }, at: new Date().toISOString()
       };
       const out = [];
+      const holdOn = str(url.searchParams.get("hold") || "", 10);
+      const bookedOn = str(url.searchParams.get("booked") || "", 10);
+      if (holdOn || bookedOn) {
+        if (holdOn) out.push({ kind: "HOLD", when: holdOn, ok: await writeEntry(env, "HOLD", holdOn, "demo couple, awaiting decision", requestText(demo, "HOLD")) });
+        if (bookedOn) out.push({ kind: "BOOKED", when: bookedOn, ok: await writeEntry(env, "BOOKED", bookedOn, "demo couple, Signature Cinema", requestText(demo, "BOOKED")) });
+        return json({ results: out }, 200, corsHeaders);
+      }
       out.push({ kind: "INQUIRY", when: from,
         ok: await writeEntry(env, "INQUIRY", from, "Athina and Spiros (test), Signature Cinema", requestText(demo, "INQUIRY")) });
       out.push({ kind: "FOLLOW-UP", when: plusDays(from, 1),
