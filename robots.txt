@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://padastic.github.io/atheaton-films/sitemap.xml
